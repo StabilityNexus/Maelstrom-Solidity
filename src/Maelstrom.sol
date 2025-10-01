@@ -52,12 +52,14 @@ contract Maelstrom {
     }
 
     function _getDecayValue(uint256 initialValue,int256 timeElapsed) internal pure returns (uint256){
-        return (uint256)(SD59x18.unwrap(SD59x18.wrap((int256)(initialValue)) * exp(SD59x18.wrap(timeElapsed))));  
+        int256 decayedAmount = SD59x18.unwrap(SD59x18.wrap((int256)(initialValue)) * exp(SD59x18.wrap(-timeElapsed)));  
+        if(decayedAmount < 0) return 0;
+        return (uint256)(decayedAmount);
     }
 
     function updatePriceSellParams(address token,uint256 tokenAmount, uint256 newPrice) internal {
         PoolParams storage pool = pools[token];
-        int256 timeElapsed = (int256)(pool.lastExchangeTimestamp - block.timestamp);
+        int256 timeElapsed = (int256)(block.timestamp - pool.lastExchangeTimestamp);
         uint256 decayedSellVolume = _getDecayValue(pool.decayedSellVolume,timeElapsed);
         uint256 decayedBuyVolume = _getDecayValue(pool.decayedBuyVolume,timeElapsed);
         uint256 newDecayedSellVolume = decayedSellVolume + tokenAmount;
@@ -73,7 +75,7 @@ contract Maelstrom {
 
     function updatePriceBuyParams(address token,uint256 tokenAmount, uint256 newPrice) internal {
         PoolParams storage pool = pools[token];
-        int256 timeElapsed = (int256)(pool.lastExchangeTimestamp - block.timestamp) ;
+        int256 timeElapsed = (int256)(block.timestamp - pool.lastExchangeTimestamp);
         uint256 decayedSellVolume = _getDecayValue(pool.decayedSellVolume,timeElapsed);
         uint256 decayedBuyVolume = _getDecayValue(pool.decayedBuyVolume,timeElapsed);
         uint256 newDecayedBuyVolume = decayedBuyVolume + tokenAmount;
