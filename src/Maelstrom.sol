@@ -5,9 +5,11 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {LiquidityPoolToken} from "./LiquidityPoolToken.sol";
+import {SafeMath} from "node_modules/openzeppelin/contracts/utils/math/SafeMath.sol";
 import {SD59x18,exp} from "prb-math/src/SD59x18.sol";
 
 contract Maelstrom {
+    using SafeMath for uint256;
     struct PoolParams {
         uint256 lastBuyPrice;
         uint256 lastSellPrice;
@@ -136,7 +138,7 @@ contract Maelstrom {
     function _preBuy(address token, uint256 ethAmount) internal returns (uint256, uint256) {
         ethBalance[token] += ethAmount;
         uint256 buyPrice = priceBuy(token);
-        uint256 tokenAmount = (ethAmount / buyPrice) * 1e18;
+        uint256 tokenAmount = (ethAmount * 1e18 ) / buyPrice;
         require((ERC20(token).balanceOf(address(this)) * 10) / 100 >= tokenAmount, "Not more than 10% of tokens in pool can be used for swap");
         updatePriceBuyParams(token, tokenAmount, buyPrice);
         return (tokenAmount, buyPrice);
@@ -144,20 +146,21 @@ contract Maelstrom {
 
     function priceBuy(address token) public view returns (uint256){
         PoolParams memory pool = pools[token];
-        uint256 lastBuyPrice = pool.lastBuyPrice;
+        uint256 initialBuyPrice = pool.initialBuyPrice;
         uint256 finalBuyPrice = pool.finalBuyPrice;
         uint256 timeElapsed = block.timestamp - pool.lastExchangeTimestamp;
         if(timeElapsed >= pool.decayedBuyTime) return finalBuyPrice; 
-        return lastBuyPrice - (((lastBuyPrice - finalBuyPrice) * timeElapsed) / (pool.decayedBuyTime)); 
+        //Initial Price should be used for calculation,since last price is only the price at which last trade happened,not updated price
+        return initialBuyPrice - (((initialBuyPrice - finalBuyPrice) * timeElapsed) / (pool.decayedBuyTime)); 
     }
 
     function priceSell(address token) public view returns(uint256){
         PoolParams memory pool = pools[token];
-        uint256 lastSellPrice = pool.lastSellPrice;
+        uint256 initialSellPrice = pool.initialSellPrice;
         uint256 finalSellPrice = pool.finalSellPrice;
         uint256 timeElapsed = block.timestamp - pool.lastExchangeTimestamp;
         if(timeElapsed >= pool.decayedSellTime) return finalSellPrice;
-        return lastSellPrice + (((finalSellPrice - lastSellPrice) * timeElapsed) / (pool.decayedSellTime));
+        return initialSellPrice + (((finalSellPrice - initialSellPrice) * timeElapsed) / (pool.decayedSellTime));
     }
 
     function initializePool(address token, uint256 amount, uint256 initialPriceBuy, uint256 initialPriceSell) public payable {
@@ -167,12 +170,13 @@ contract Maelstrom {
         receiveERC20(token, msg.sender, amount);
         LiquidityPoolToken lpt = new LiquidityPoolToken(tokenName, tokenSymbol);
         poolToken[token] = lpt;
+        uint256 avgPrice = (initialPriceBuy + initialPriceSell) / 2;
         pools[token] = PoolParams({
             lastBuyPrice: initialPriceBuy,
             lastSellPrice: initialPriceSell,
             lastExchangeTimestamp: block.timestamp,
-            finalBuyPrice: initialPriceBuy,
-            finalSellPrice: initialPriceSell,
+            finalBuyPrice: avgPrice,
+            finalSellPrice: avgPrice,
             initialSellPrice: initialPriceSell,
             initialBuyPrice: initialPriceBuy,
             lastBuyTimestamp: block.timestamp,
@@ -276,5 +280,4 @@ contract Maelstrom {
         sendERC20(tokenBuy, msg.sender, tokenAmount);
         emit SwapTrade(tokenSell, tokenBuy, msg.sender, amountToSell, tokenAmount, sellPrice, buyPrice);
     }
-
 }
