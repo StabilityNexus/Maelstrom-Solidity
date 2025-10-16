@@ -211,15 +211,17 @@ contract Maelstrom {
         return poolTokenBalance / poolETHBalance;
     }
 
-    function buy(address token) public payable {
+    function buy(address token, uint256 minimumAmountToBuy) public payable {
         (uint256 tokenAmount,uint256 buyPrice) = _preBuy(token, msg.value);
+        require(minimumAmountToBuy < tokenAmount, "Insufficient output amount");
         sendERC20(token, msg.sender, tokenAmount);
         emit BuyTrade(token, msg.sender, msg.value, tokenAmount, buyPrice);
     }
 
-    function sell(address token, uint256 amount) public {
+    function sell(address token, uint256 amount, uint256 minimumEthAmount) public {
         receiveERC20(token, msg.sender, amount);
         (uint256 ethAmount, uint256 sellPrice) = _postSell(token, amount);
+        require(minimumEthAmount < ethAmount, "Insufficient output amount");`
         (bool success, ) = msg.sender.call{value: ethAmount}(''); 
         require(success, 'Transfer failed');
         emit SellTrade(token, msg.sender, amount, ethAmount, sellPrice);

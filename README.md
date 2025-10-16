@@ -52,5 +52,5 @@
 <h1>Maelstrom - Smart Contracts</h1>
 </div>
 
-This repository implements the smart contract for the [Maelstrom](https://maelstrom.stability.nexus/) platform. For the complete web interface and additional documentation, kindly refer to [Maelstrom-WebUI](https://github.com/Stability-Nexus/Maelstrom-WebUI).
+This repository implements the smart contract for the [Maelstrom](https://maelstrom.stability.nexus/) platform. For the complete web interface and additional documentation, kindly refer to [Maelstrom-WebUI](https://github.com/StabilityNexus/Maelstrom-WebUI).
 
