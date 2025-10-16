@@ -41,7 +41,7 @@ contract Maelstrom {
     address[] public poolList;
     mapping(address => uint256) public totalPoolFees;
     mapping(address => PoolFees[]) public poolFeesEvents;
-    mapping(address => uint256) public liquidityProvided;
+    // mapping(address => uint256) public liquidityProvided;
     mapping(address => mapping(address => uint256)) public userPoolIndex;  //index+1 is stored
     mapping(address => address[]) public userPools;
     mapping(address => LiquidityPoolToken) public poolToken; 
@@ -228,7 +228,7 @@ contract Maelstrom {
             decayedBuyVolume: 0,
             decayedSellVolume: 0
         });
-        liquidityProvided[msg.sender] += msg.value + (amount * (initialPriceBuy + initialPriceSell) / 2) / 1e18;
+        // liquidityProvided[msg.sender] += msg.value + (amount * (initialPriceBuy + initialPriceSell) / 2) / 1e18;
         ethBalance[token] = msg.value;
         poolToken[token].mint(msg.sender, amount);
         poolList.push(token);
@@ -279,8 +279,8 @@ contract Maelstrom {
         LiquidityPoolToken pt = poolToken[token];
         uint256 mintAmount = (pt.totalSupply() * msg.value) / ethBalanceBefore;
         pt.mint(msg.sender, mintAmount);
-        PoolParams memory pool = pools[token];
-        liquidityProvided[msg.sender] += (msg.value + (tokenAmount * (pool.lastBuyPrice + pool.lastSellPrice) / 2) / 1e18);
+        // PoolParams memory pool = pools[token];
+        // liquidityProvided[msg.sender] += (msg.value + (tokenAmount * (pool.lastBuyPrice + pool.lastSellPrice) / 2) / 1e18);
         emit Deposit(token, msg.sender, msg.value, tokenAmount, mintAmount);
     }
 
