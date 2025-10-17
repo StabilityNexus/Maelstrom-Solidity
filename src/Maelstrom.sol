@@ -36,8 +36,8 @@ contract Maelstrom {
     event SwapTrade(address indexed tokenSold, address indexed tokenBought, address indexed trader, uint256 amountTokenSold, uint256 amountTokenBought, uint256 sellPrice, uint256 buyPrice);
     event Deposit(address indexed token, address indexed user, uint256 amountEther, uint256 amountToken, uint256 lpTokensMinted);
     event Withdraw(address indexed token, address indexed user, uint256 amountEther, uint256 amountToken, uint256 lpTokensBurned);
-    uint256 auctionResetPercentage = 5;
-    uint256 totalFees = 0;
+    uint256 public auctionResetPercentage = 5;
+    uint256 public totalFees = 0;
     address[] public poolList;
     mapping(address => uint256) public totalPoolFees;
     mapping(address => PoolFees[]) public poolFeesEvents;
