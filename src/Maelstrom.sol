@@ -31,8 +31,8 @@ contract Maelstrom {
         uint256 timestamp;
     }
     event PoolInitialized(address indexed token, uint256 amountToken, uint256 amountEther, uint256 initialPriceBuy, uint256 initialPriceSell);
-    event BuyTrade(address indexed token, address indexed trader, uint256 amountEther, uint256 amountToken, uint256 tradeBuyPrice, uint256 updatedBuyPrice);
-    event SellTrade(address indexed token, address indexed trader, uint256 amountToken, uint256 amountEther, uint256 tradeSellPrice, uint256 updatedSellPrice);
+    event BuyTrade(address indexed token, address indexed trader, uint256 amountEther, uint256 amountToken, uint256 tradeBuyPrice, uint256 updatedBuyPrice, uint256 sellPrice);
+    event SellTrade(address indexed token, address indexed trader, uint256 amountToken, uint256 amountEther, uint256 tradeSellPrice, uint256 updatedSellPrice, uint256 buyPrice);
     event SwapTrade(address indexed tokenSold, address indexed tokenBought, address indexed trader, uint256 amountTokenSold, uint256 amountTokenBought, uint256 tradeSellPrice, uint256 updatedSellPrice, uint256 tradeBuyPrice, uint256 updatedBuyPrice);
     event Deposit(address indexed token, address indexed user, uint256 amountEther, uint256 amountToken, uint256 lpTokensMinted);
     event Withdraw(address indexed token, address indexed user, uint256 amountEther, uint256 amountToken, uint256 lpTokensBurned);
@@ -257,7 +257,7 @@ contract Maelstrom {
         (uint256 amountToken,uint256 buyPrice) = _preBuy(token, msg.value);
         require(minimumAmountToken <= amountToken, "Insufficient output amount");
         sendERC20(token, msg.sender, amountToken);
-        emit BuyTrade(token, msg.sender, msg.value, amountToken, buyPrice, priceBuy(token));
+        emit BuyTrade(token, msg.sender, msg.value, amountToken, buyPrice, priceBuy(token), priceSell(token));
     }
 
     function sell(address token, uint256 amount, uint256 minimumAmountEther) public {
@@ -266,7 +266,7 @@ contract Maelstrom {
         require(minimumAmountEther < amountEther, "Insufficient output amount");
         (bool success, ) = msg.sender.call{value: amountEther}(''); 
         require(success, 'Transfer failed');
-        emit SellTrade(token, msg.sender, amount, amountEther, sellPrice, priceSell(token));
+        emit SellTrade(token, msg.sender, amount, amountEther, sellPrice, priceSell(token), priceBuy(token));
     }
 
     function deposit(address token) external payable {
