@@ -9,7 +9,6 @@ import {SD59x18, exp} from "prb-math/src/SD59x18.sol";
 import {ProtocolParameters} from "./ProtocolParameters.sol";
 
 contract Maelstrom {
-
     struct PoolParams {
         uint256 lastBuyPrice;
         uint256 lastSellPrice;
