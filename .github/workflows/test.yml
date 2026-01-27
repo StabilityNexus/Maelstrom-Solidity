@@ -29,8 +29,8 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
-      - name: Check Solidity formatting (Prettier)
-        run: npx prettier --check "**/*.sol"
+      - name: Prettier check (Solidity)
+        run: npm run sol-check-all
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
@@ -40,8 +40,6 @@ jobs:
 
       - name: Run Forge build
         run: forge build --sizes
-        id: build
 
       - name: Run Forge tests
         run: forge test -vvv
-        id: test
