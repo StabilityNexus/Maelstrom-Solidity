@@ -171,9 +171,9 @@ contract Maelstrom {
         require((ethBalance[token] * 10) / 100 >= amountEther, "Not more than 10% of eth in pool can be used for swap");
         ethBalance[token] -= amountEther;
         uint256 totalFee = ((pools[token].finalSellPrice - sellPrice) * amountToken) / 1e18;
-        
+
         if (totalFee != 0) processProtocolFees(token, totalFee);
-        
+
         updatePriceSellParams(token, amountToken, sellPrice);
         return (amountEther, sellPrice);
     }
