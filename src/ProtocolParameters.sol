@@ -25,11 +25,7 @@ contract ProtocolParameters {
         _;
     }
 
-    constructor(address _treasury, address _manager, uint256 _fee)
-        nonZeroAddress(_treasury)
-        nonZeroAddress(_manager)
-        lessThan5Percent(_fee)
-    {
+    constructor(address _treasury, address _manager, uint256 _fee) nonZeroAddress(_treasury) nonZeroAddress(_manager) lessThan5Percent(_fee) {
         treasury = _treasury;
         manager = _manager;
         fee = _fee;
