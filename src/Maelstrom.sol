@@ -98,12 +98,13 @@ contract Maelstrom {
         SafeERC20.safeTransferFrom(IERC20(token), from, address(this), amountToken);
     }
 
-    function _getSubArray(address[] memory array, uint256 start, uint256 end) internal pure returns (address[] memory) {
-        if (array.length == 0) {
-            return new address[](0);
-        }
-        if (start >= array.length) {
-            return new address[](0);
+    function _getSubArray(address[] memory array, uint256 start, uint256 end)
+        internal
+        pure
+        returns (address[] memory)
+    {
+        if (array.length == 0 || start >= array.length) {
+            return new address;
         }
 
         end = end >= array.length ? array.length - 1 : end;
@@ -192,7 +193,7 @@ contract Maelstrom {
         pool.decayedSellVolume = newDecayedSellVolume;
         pool.decayedBuyVolume = decayedBuyVolume;
 
-        pool.finalBuyPrice =calculateFinalPrice(newDecayedSellVolume, newInitialSellPrice, decayedBuyVolume, pool.initialBuyPrice);
+        pool.finalBuyPrice = calculateFinalPrice(newDecayedSellVolume, newInitialSellPrice, decayedBuyVolume, pool.initialBuyPrice);
         pool.finalSellPrice = pool.finalBuyPrice;
         pool.decayedSellTime =
             (((block.timestamp - pool.lastSellTimestamp) * amountToken) + (pool.decayedSellTime * decayedSellVolume))
@@ -214,7 +215,7 @@ contract Maelstrom {
         pool.decayedBuyVolume = newDecayedBuyVolume;
         pool.decayedSellVolume = decayedSellVolume;
 
-        pool.finalBuyPrice =calculateFinalPrice(decayedSellVolume, pool.initialSellPrice, newDecayedBuyVolume, newInitialBuyPrice);
+        pool.finalBuyPrice = calculateFinalPrice(decayedSellVolume, pool.initialSellPrice, newDecayedBuyVolume, newInitialBuyPrice);
         pool.finalSellPrice = pool.finalBuyPrice;
         pool.decayedBuyTime =
             (((block.timestamp - pool.lastBuyTimestamp) * amountToken) + (pool.decayedBuyTime * decayedBuyVolume))
