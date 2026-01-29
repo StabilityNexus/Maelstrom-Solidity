@@ -10,13 +10,16 @@ contract ProtocolParameters {
     address public manager;
     uint256 public fee;
 
+    event FeeUpdated(uint256 newFee);
+    event TreasuryUpdated(address indexed newTreasury);
+
     modifier onlyManager() {
         require(msg.sender == manager, "Caller is not the manager");
         _;
     }
 
     modifier lessThan5Percent(uint256 feeRate) {
-        require(feeRate <= 500, "Fee rate must be between 0 and 500"); //0 to 5% , rate = 0.0001 * _fee;
+        require(feeRate <= 500, "Fee rate must be between 0 and 500"); // 0 to 5% , rate = 0.0001 * _fee;
         _;
     }
 
@@ -37,9 +40,11 @@ contract ProtocolParameters {
 
     function updateFee(uint256 newFee) external onlyManager lessThan5Percent(newFee) {
         fee = newFee;
+        emit FeeUpdated(newFee);
     }
 
     function updateTreasury(address newTreasury) external onlyManager nonZeroAddress(newTreasury) {
         treasury = newTreasury;
+        emit TreasuryUpdated(newTreasury);
     }
 }

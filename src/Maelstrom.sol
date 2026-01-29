@@ -1,17 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.20;
 
-import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
-import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {LiquidityPoolToken} from "./LiquidityPoolToken.sol";
-import {SafeMath} from "node_modules/openzeppelin/contracts/utils/math/SafeMath.sol";
-import {SD59x18, exp} from "prb-math/src/SD59x18.sol";
-import {ProtocolParameters} from "./ProtocolParameters.sol";
+import { IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import { ERC20 } from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import { SafeERC20 } from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import { LiquidityPoolToken } from "./LiquidityPoolToken.sol";
+import { SD59x18, exp } from "prb-math/src/SD59x18.sol";
+import { ProtocolParameters } from "./ProtocolParameters.sol";
 
 contract Maelstrom {
-    using SafeMath for uint256;
-
     struct PoolParams {
         uint256 lastBuyPrice;
         uint256 lastSellPrice;
@@ -86,7 +83,21 @@ contract Maelstrom {
     mapping(address => PoolParams) public pools;
     ProtocolParameters protocolParameters;
 
-    constructor(address _protocolParametersAddress) {
+    modifier validAmount(uint256 amount) {
+        require(amount > 0, "Amount must be greater than zero");
+        _;
+    }
+
+    modifier validAddress(address _addr) {
+        require(_addr != address(0), "Invalid address");
+        _;
+    }
+    modifier validETHValue(string memory errorMessage) {
+        require(msg.value > 0, errorMessage);
+        _;
+    }
+
+    constructor(address _protocolParametersAddress) validAddress(_protocolParametersAddress) {
         protocolParameters = ProtocolParameters(_protocolParametersAddress);
     }
 
@@ -98,7 +109,7 @@ contract Maelstrom {
         SafeERC20.safeTransferFrom(IERC20(token), from, address(this), amountToken);
     }
 
-    function _getSubArray(address[] memory array, uint256 start, uint256 end)
+    function ininSubArray(address[] memory array, uint256 start, uint256 end)
         internal
         pure
         returns (address[] memory)
@@ -269,11 +280,7 @@ contract Maelstrom {
         return initialSellPrice + (((finalSellPrice - initialSellPrice) * timeElapsed) / (pool.decayedSellTime));
     }
 
-    function initializePool(address token, uint256 amountToken, uint256 initialPriceBuy, uint256 initialPriceSell)
-        public
-        payable
-    {
-        require(msg.value > 0, "Initial liquidity required");
+    function initializePool(address token, uint256 amountToken, uint256 initialPriceBuy, uint256 initialPriceSell) public payable validAddress(token) validETHValue("Initial liquidity required") {
         require(amountToken > 0, "Initial token liquidity required");
         require(initialPriceBuy > 0 && initialPriceSell > 0, "Initial prices must be > 0");
         require(address(poolToken[token]) == address(0), "pool already initialized");
@@ -330,7 +337,7 @@ contract Maelstrom {
         emit BuyTrade(token, msg.sender, msg.value, amountToken, buyPrice, priceBuy(token), priceSell(token));
     }
 
-    function sell(address token, uint256 amount, uint256 minimumAmountEther) public {
+    function sell(address token, uint256 amount, uint256 minimumAmountEther) public validAmount(amount) validAddress(token) {
         receiveERC20(token, msg.sender, amount);
         (uint256 amountEther, uint256 sellPrice) = _postSell(token, amount);
         require(minimumAmountEther < amountEther, "Insufficient output amount");
@@ -353,7 +360,7 @@ contract Maelstrom {
         emit Deposit(token, msg.sender, msg.value, amountToken, mintAmount);
     }
 
-    function withdraw(address token, uint256 amountPoolToken) external {
+    function withdraw(address token, uint256 amountPoolToken) external validAddress(token) {
         require(amountPoolToken > 0, "Amount must be greater than zero");
         LiquidityPoolToken pt = poolToken[token];
         require(pt.balanceOf(msg.sender) >= amountPoolToken, "Not enough LP tokens");
@@ -369,18 +376,18 @@ contract Maelstrom {
 
         (bool success,) = msg.sender.call{value: amountEtherAfterFees}("");
         if (pt.balanceOf(msg.sender) == 0) {
-            //Token is removed using swap and pop method(swap it with last element and pop it O(1))
             address[] storage currentPools = userPools[msg.sender];
             mapping(address => uint256) storage poolIndex = userPoolIndex[msg.sender];
-            uint256 index = userPoolIndex[msg.sender][token] - 1;
-            poolIndex[token] = 0;
-            uint256 lastIndex = userPools[msg.sender].length - 1;
-            if (index != 0) {
+            uint256 indexToRemove = poolIndex[token] - 1;
+            uint256 lastIndex = currentPools.length - 1;
+            if (indexToRemove != lastIndex) {
                 address lastToken = currentPools[lastIndex];
-                currentPools[index] = lastToken;
-                poolIndex[lastToken] = index + 1;
+                currentPools[indexToRemove] = lastToken;
+                // Update the index of the moved token (remembering it is 1-based)
+                poolIndex[lastToken] = indexToRemove + 1;
             }
             currentPools.pop();
+            poolIndex[token] = 0;
         }
         require(success, "ETH Transfer Failed!");
         emit Withdraw(token, msg.sender, amountEtherAfterFees, amountTokenAfterFees, amountPoolToken);
