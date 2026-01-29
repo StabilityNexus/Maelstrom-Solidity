@@ -187,7 +187,6 @@ contract Maelstrom {
         uint256 totalFee = ((pools[token].finalSellPrice - sellPrice) * amountToken) / 1e18;
         if (totalFee != 0) processProtocolFees(token, totalFee);
         updatePriceSellParams(token, amountToken, sellPrice);
-        processProtocolFees(token, totalFee);
         return (amountEther, sellPrice);
     }
 
