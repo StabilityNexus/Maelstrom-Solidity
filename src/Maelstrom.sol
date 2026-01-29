@@ -56,7 +56,7 @@ contract Maelstrom {
         require(_addr != address(0), "Invalid address");
         _;
     }
-    modifier validMsgValue(string memory errorMessage) {
+    modifier validETHValue(string memory errorMessage) {
         require(msg.value > 0, errorMessage);
         _;
     }
@@ -220,7 +220,7 @@ contract Maelstrom {
         return initialSellPrice + (((finalSellPrice - initialSellPrice) * timeElapsed) / (pool.decayedSellTime));
     }
 
-    function initializePool(address token, uint256 amountToken, uint256 initialPriceBuy, uint256 initialPriceSell) public payable validAddress(token) validMsgValue("Initial liquidity required") {
+    function initializePool(address token, uint256 amountToken, uint256 initialPriceBuy, uint256 initialPriceSell) public payable validAddress(token) validETHValue("Initial liquidity required") {
         require(amountToken > 0, "Initial token liquidity required");
         require(initialPriceBuy > 0 && initialPriceSell > 0, "Initial prices must be > 0");
         require(address(poolToken[token]) == address(0), "pool already initialized");
@@ -252,7 +252,6 @@ contract Maelstrom {
 
     function tokenPerETHRatio(address token) public view returns (uint256) {
         (uint256 poolETHBalance, uint256 poolTokenBalance) = reserves(token);
-        if (poolETHBalance == 0) return 0;
         return poolTokenBalance / poolETHBalance;
     }
 
