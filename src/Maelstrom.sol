@@ -4,11 +4,12 @@ pragma solidity 0.8.20;
 import { IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import { ERC20 } from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import { SafeERC20 } from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ReentrancyGuard } from "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 import { LiquidityPoolToken } from "./LiquidityPoolToken.sol";
 import { SD59x18, exp } from "prb-math/src/SD59x18.sol";
 import { ProtocolParameters } from "./ProtocolParameters.sol";
 
-contract Maelstrom {
+contract Maelstrom is ReentrancyGuard {
     struct PoolParams {
         uint256 lastBuyPrice;
         uint256 lastSellPrice;
@@ -220,7 +221,7 @@ contract Maelstrom {
         return initialSellPrice + (((finalSellPrice - initialSellPrice) * timeElapsed) / (pool.decayedSellTime));
     }
 
-    function initializePool(address token, uint256 amountToken, uint256 initialPriceBuy, uint256 initialPriceSell) public payable validAddress(token) validETHValue("Initial liquidity required") {
+    function initializePool(address token, uint256 amountToken, uint256 initialPriceBuy, uint256 initialPriceSell) public payable validAddress(token) validETHValue("Initial liquidity required") nonReentrant {
         require(amountToken > 0, "Initial token liquidity required");
         require(initialPriceBuy > 0 && initialPriceSell > 0, "Initial prices must be > 0");
         require(address(poolToken[token]) == address(0), "pool already initialized");
@@ -255,14 +256,14 @@ contract Maelstrom {
         return poolTokenBalance / poolETHBalance;
     }
 
-    function buy(address token, uint256 minimumAmountToken) public payable {
+    function buy(address token, uint256 minimumAmountToken) public payable nonReentrant {
         (uint256 amountToken, uint256 buyPrice) = _preBuy(token, msg.value);
         require(minimumAmountToken <= amountToken, "Insufficient output amount");
         sendERC20(token, msg.sender, amountToken);
         emit BuyTrade(token, msg.sender, msg.value, amountToken, buyPrice, priceBuy(token), priceSell(token));
     }
 
-    function sell(address token, uint256 amount, uint256 minimumAmountEther) public validAmount(amount) validAddress(token) {
+    function sell(address token, uint256 amount, uint256 minimumAmountEther) public validAmount(amount) validAddress(token) nonReentrant {
         receiveERC20(token, msg.sender, amount);
         (uint256 amountEther, uint256 sellPrice) = _postSell(token, amount);
         require(amountEther >= minimumAmountEther, "Insufficient output amount");
@@ -271,7 +272,7 @@ contract Maelstrom {
         emit SellTrade(token, msg.sender, amount, amountEther, sellPrice, priceSell(token), priceBuy(token));
     }
 
-    function deposit(address token) external payable {
+    function deposit(address token) external payable nonReentrant {
         require(msg.value > 0, "Must send ETH to deposit");
         if (userPoolIndex[msg.sender][token] == 0) _addTokenToUserPools(msg.sender, token);
         uint256 ethBalanceBefore = ethBalance[token];
@@ -284,7 +285,7 @@ contract Maelstrom {
         emit Deposit(token, msg.sender, msg.value, amountToken, mintAmount);
     }
 
-    function withdraw(address token, uint256 amountPoolToken) external validAddress(token) {
+    function withdraw(address token, uint256 amountPoolToken) external validAddress(token) nonReentrant {
         require(amountPoolToken > 0, "Amount must be greater than zero");
         LiquidityPoolToken pt = poolToken[token];
         require(pt.balanceOf(msg.sender) >= amountPoolToken, "Not enough LP tokens");
@@ -316,7 +317,7 @@ contract Maelstrom {
         emit Withdraw(token, msg.sender, amountEtherAfterFees, amountTokenAfterFees, amountPoolToken);
     }
 
-    function swap(address tokenSell, address tokenBuy, uint256 amountToSell, uint256 minimumAmountToken) external {
+    function swap(address tokenSell, address tokenBuy, uint256 amountToSell, uint256 minimumAmountToken) external nonReentrant {
         (uint256 amountEther, uint256 sellPrice) = _postSell(tokenSell, amountToSell);
         (uint256 amountToken, uint256 buyPrice) = _preBuy(tokenBuy, amountEther);
         require(amountToken >= minimumAmountToken, "Insufficient output amount");
