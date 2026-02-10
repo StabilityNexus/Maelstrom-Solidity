@@ -137,6 +137,7 @@ contract Maelstrom {
         PoolFees memory newFee = PoolFees({ fee: totalFee, timestamp: block.timestamp });
         poolFeesEvents[token].push(newFee);
         uint256 stableFees = (totalFee * protocolParameters.fee()) / 10000;
+        ethBalance[token] -= stableFees;
         address feeRecipient = protocolParameters.treasury();
         (bool success, ) = feeRecipient.call{ value: stableFees }("");
         require(success, "Transfer failed");
