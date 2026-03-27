@@ -35,6 +35,8 @@ contract Maelstrom {
     event SwapTrade(address indexed tokenSold, address indexed tokenBought, address indexed trader, uint256 amountTokenSold, uint256 amountTokenBought, uint256 tradeSellPrice, uint256 updatedSellPrice, uint256 tradeBuyPrice, uint256 updatedBuyPrice);
     event Deposit(address indexed token, address indexed user, uint256 amountEther, uint256 amountToken, uint256 lpTokensMinted);
     event Withdraw(address indexed token, address indexed user, uint256 amountEther, uint256 amountToken, uint256 lpTokensBurned);
+    event FeeTransferFailed(address indexed treasury, uint256 amount);
+    event FeePending(address indexed treasury, uint256 amount);
     uint256 public auctionResetPercentage = 5;
     uint256 public totalFees = 0;
     address[] public poolList;
@@ -45,6 +47,7 @@ contract Maelstrom {
     mapping(address => LiquidityPoolToken) public poolToken;
     mapping(address => uint256) public ethBalance;
     mapping(address => PoolParams) public pools;
+    mapping(address => uint256) public pendingFees;
     ProtocolParameters protocolParameters;
 
     modifier validAmount(uint256 amount) {
@@ -139,7 +142,26 @@ contract Maelstrom {
         uint256 stableFees = (totalFee * protocolParameters.fee()) / 10000;
         address feeRecipient = protocolParameters.treasury();
         (bool success, ) = feeRecipient.call{ value: stableFees }("");
-        require(success, "Transfer failed");
+        if (!success) {
+            pendingFees[feeRecipient] += stableFees;
+            emit FeePending(feeRecipient, stableFees);
+        }
+    }
+
+    function withdrawPendingFees() external {
+        address feeRecipient = protocolParameters.treasury();
+        uint256 amount = pendingFees[feeRecipient];
+        require(amount > 0, "No pending fees");
+        pendingFees[feeRecipient] = 0;
+        (bool success, ) = feeRecipient.call{ value: amount }("");
+        if (!success) {
+            pendingFees[feeRecipient] = amount;
+            emit FeeTransferFailed(feeRecipient, amount);
+        }
+    }
+
+    function getPendingFees(address treasuryAddress) external view returns (uint256) {
+        return pendingFees[treasuryAddress];
     }
 
     function updatePriceSellParams(address token, uint256 amountToken, uint256 newPrice) internal {
